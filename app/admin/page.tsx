@@ -21,13 +21,13 @@ export default async function AdminPage() {
 
   // คำนวณรายรับ (เป็นบวกเสมอ)
   const totalIncome = transactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter((t: any) => t.type === "income")
+    .reduce((sum: number, t: any) => sum + t.amount, 0);
 
   // คำนวณรายจ่าย (ใน DB เก็บเป็นลบ → ใช้ Math.abs เพื่อทำให้เป็นบวก)
   const totalExpense = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    .filter((t: any) => t.type === "expense")
+    .reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0);
 
   // กำไรสุทธิ = รายรับ - รายจ่าย (บวก)
   const netProfit = totalIncome - totalExpense;
