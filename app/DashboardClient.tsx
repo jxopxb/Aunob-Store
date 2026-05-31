@@ -103,7 +103,7 @@ export default function DashboardClient({ initialDebtors }: { initialDebtors: De
           <div>
             <p className="text-[9px] sm:text-[10px] tracking-[0.2em] text-zinc-500 uppercase font-medium">DEBT LEDGER</p>
             <h1 className="text-base sm:text-xl font-light text-zinc-200 mt-0.5 tracking-wide">
-              ภาพรวมลูกหนี้
+              รายการคนเชื่อของ
             </h1>
           </div>
 
@@ -242,7 +242,7 @@ export default function DashboardClient({ initialDebtors }: { initialDebtors: De
 
               <div className="flex justify-between items-end mt-auto">
                 <div>
-                  <p className="text-[9px] sm:text-[10px] uppercase text-zinc-600 tracking-wider mb-0.5">Outstanding</p>
+                  <p className="text-[9px] sm:text-[10px] uppercase text-zinc-600 tracking-wider mb-0.5">ยอดค้างทั้งหมด</p>
                   <p className="text-sm sm:text-base font-medium text-amber-400">
                     ฿{debtor.totalDebt.toLocaleString()}
                   </p>
