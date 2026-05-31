@@ -35,7 +35,7 @@ import {
   getAvailableMonths,
 } from "./actions";
 
-// --- Types ---
+// --- Types ---ป
 interface Debtor {
   id: number;
   name: string;
