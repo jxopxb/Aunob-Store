@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// 1. โมเดลเก็บรายชื่อลูกหนี้
+model Debtor {
+  id           Int           @id @default(autoincrement())
+  name         String
+  note         String?
+  totalDebt    Float         @default(0.0) @map("total_debt")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  transactions Transaction[]
+
+  @@map("debtors")
+}
+
+// 2. โมเดลเก็บธุรกรรมทั้งหมด (รายรับ, รายจ่าย, จ่ายหนี้, ยืมเพิ่ม)
+model Transaction {
+  id          Int      @id @default(autoincrement())
+  debtorId    Int?     @map("debtor_id")
+  debtor      Debtor?  @relation(fields: [debtorId], references: [id], onDelete: SetNull)
+  type        String   // 'income', 'expense', 'debt_payment', 'debt_add'
+  amount      Float
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("transactions")
+}
+
+// 3. โมเดลสำหรับ Admin
+model Admin {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("admins")
+}
