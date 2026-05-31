@@ -51,7 +51,7 @@ interface Transaction {
   type: "income" | "expense" | "debt_payment" | "debt_add" | string;
   amount: number;
   description?: string | null;
-  createdAt: string;
+  createdAt: string | Date; // ← แก้ตรงนี้
 }
 
 interface MonthlySummary {
@@ -190,7 +190,7 @@ export default function AdminClient({
         setTxForm({ type: "income", amount: "", description: "", debtorId: "" });
         router.refresh();
       } else {
-        alert(res?.error || "เกิดข้อผิดพลาด");
+        alert((res as any)?.error || "เกิดข้อผิดพลาด");
       }
     });
   };
@@ -209,7 +209,7 @@ export default function AdminClient({
         setDebtorForm({ name: "", note: "", initialDebt: "" });
         router.refresh();
       } else {
-        alert(res?.error || "เกิดข้อผิดพลาด");
+        alert((res as any)?.error || "เกิดข้อผิดพลาด");
       }
     });
   };
@@ -234,7 +234,7 @@ export default function AdminClient({
     if (res?.success) {
       router.refresh();
     } else {
-      alert(res?.error || "ไม่สามารถลบลูกหนี้ได้");
+      alert((res as any)?.error || "ไม่สามารถลบลูกหนี้ได้");
     }
   };
 
@@ -327,7 +327,7 @@ export default function AdminClient({
                       onClick={async () => {
                         if (!confirm("ยืนยันการลบรายการนี้?")) return;
                         const res = await deleteTransaction(t.id);
-                        if (!res?.success) alert(res?.error);
+                        if (!res?.success) alert((res as any)?.error);
                         else router.refresh();
                       }}
                       className="text-zinc-700 hover:text-rose-400 p-1.5 rounded transition-colors opacity-0 group-hover:opacity-100"
@@ -402,13 +402,20 @@ export default function AdminClient({
           );
         })}
       </nav>
-      <div className="px-3 py-4 border-t border-zinc-900">
+      <div className="px-3 py-4 border-t border-zinc-900 space-y-2">
         <Link href="/main">
           <button className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs text-zinc-600 hover:text-zinc-300 hover:bg-zinc-900/40 transition-all">
             <ArrowLeftFromLine size={14} />
             <span className="font-light">กลับหน้าหลัก</span>
           </button>
         </Link>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all"
+        >
+          <LogOut size={14} />
+          <span className="font-light">ออกจากระบบ</span>
+        </button>
       </div>
     </div>
   );

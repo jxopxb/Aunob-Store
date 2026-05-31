@@ -5,14 +5,14 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 // 1. เพิ่มลูกหนี้ใหม่
-export async function createDebtor(name: string, note: string, initialDebt?: number) {
+export async function createDebtor(
+  name: string,
+  note: string,
+  initialDebt?: number
+): Promise<{ success: boolean; error?: string }> {
   try {
     await prisma.debtor.create({
-      data: { 
-        name, 
-        note, 
-        totalDebt: initialDebt || 0 
-      },
+      data: { name, note, totalDebt: initialDebt || 0 },
     });
     revalidatePath("/");
     revalidatePath("/admin");
@@ -29,9 +29,9 @@ export async function updateDebt(
   amount: number,
   description: string,
   type: 'debt_payment' | 'debt_add'
-) {
+): Promise<{ success: boolean; error?: string }> {
   const debtor = await prisma.debtor.findUnique({ where: { id: debtorId } });
-  if (!debtor) return { success: false };
+  if (!debtor) return { success: false, error: "ไม่พบลูกหนี้" };
 
   const newTotal = type === 'debt_payment'
     ? debtor.totalDebt - amount
@@ -62,20 +62,25 @@ export async function addGeneralTransaction(
   type: 'income' | 'expense',
   amount: number,
   description: string
-) {
-  await prisma.transaction.create({
-    data: {
-      type,
-      amount: type === 'expense' ? -amount : amount,
-      description
-    }
-  });
-  revalidatePath("/admin");
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await prisma.transaction.create({
+      data: {
+        type,
+        amount: type === 'expense' ? -amount : amount,
+        description
+      }
+    });
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { success: false, error: "เกิดข้อผิดพลาดในการบันทึกธุรกรรม" };
+  }
 }
 
 // 4. ลบลูกหนี้ (ห้ามลบถ้ามีประวัติหนี้)
-export async function deleteDebtor(id: number) {
-  // ตรวจสอบว่ามีธุรกรรมที่เกี่ยวข้องหรือไม่
+export async function deleteDebtor(id: number): Promise<{ success: boolean; error?: string }> {
   const txCount = await prisma.transaction.count({ where: { debtorId: id } });
   if (txCount > 0) {
     return { success: false, error: "ไม่สามารถลบได้ เนื่องจากมีประวัติธุรกรรม" };
@@ -93,22 +98,21 @@ export async function createTransaction(data: {
   amount: number;
   description: string;
   debtorId?: number | null;
-}) {
+}): Promise<{ success: boolean; error?: string }> {
   if (data.type === "debt_payment" || data.type === "debt_add") {
     if (!data.debtorId) return { success: false, error: "กรุณาระบุลูกหนี้" };
     return updateDebt(data.debtorId, data.amount, data.description || "", data.type);
   }
 
   if (data.type === "income" || data.type === "expense") {
-    await addGeneralTransaction(data.type, data.amount, data.description || "");
-    return { success: true };
+    return addGeneralTransaction(data.type, data.amount, data.description || "");
   }
 
   return { success: false, error: "ประเภทธุรกรรมไม่ถูกต้อง" };
 }
 
 // 6. ลบธุรกรรม (คืนยอดหนี้ให้ถูกต้อง)
-export async function deleteTransaction(id: number) {
+export async function deleteTransaction(id: number): Promise<{ success: boolean; error?: string }> {
   try {
     const tx = await prisma.transaction.findUnique({ where: { id } });
     if (!tx) return { success: false, error: "ไม่พบรายการ" };
@@ -137,7 +141,7 @@ export async function deleteTransaction(id: number) {
 // 7. ดึงสรุปยอดรายเดือน (รายรับ รายจ่าย กำไร)
 export async function getMonthlySummary(month: number, year: number) {
   const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0, 23, 59, 59, 999); // สิ้นเดือน
+  const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
   const transactions = await prisma.transaction.findMany({
     where: {
@@ -158,7 +162,7 @@ export async function getMonthlySummary(month: number, year: number) {
   return { incomeTotal, expenseTotal, profit, transactions };
 }
 
-// 8. ดึงรายชื่อเดือนที่มีข้อมูล (เพื่อให้เลือก)
+// 8. ดึงรายชื่อเดือนที่มีข้อมูล
 export async function getAvailableMonths() {
   const transactions = await prisma.transaction.findMany({
     select: { createdAt: true },
