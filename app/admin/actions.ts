@@ -152,11 +152,11 @@ export async function getMonthlySummary(month: number, year: number) {
   });
 
   const incomeTotal = transactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter((t: any) => t.type === 'income')
+    .reduce((sum: number, t: any) => sum + t.amount, 0);
   const expenseTotal = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    .filter((t: any) => t.type === 'expense')
+    .reduce((sum: number, t: any) => sum + Math.abs(t.amount), 0);
   const profit = incomeTotal - expenseTotal;
 
   return { incomeTotal, expenseTotal, profit, transactions };
@@ -170,7 +170,7 @@ export async function getAvailableMonths() {
   });
 
   const months = new Set<string>();
-  transactions.forEach(t => {
+  transactions.forEach((t: any) => {
     const d = new Date(t.createdAt);
     months.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
   });
