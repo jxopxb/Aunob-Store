@@ -185,7 +185,7 @@ export default function DashboardClient({ initialDebtors }: { initialDebtors: De
         </div>
 
         {/* ===== การ์ดลูกหนี้ (ปรับสำหรับมือถือ) ===== */}
-        <div className="grid grid-cols-1 min-[500px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-5">
+        <div className="grid grid-cols-5 min-[500px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-5">
           {displayData.length === 0 && (
             <div className="col-span-full py-20 text-center border border-dashed border-zinc-800 rounded-2xl">
               <Search size={24} className="text-zinc-700 mx-auto mb-3" />
