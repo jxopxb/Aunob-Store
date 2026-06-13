@@ -120,17 +120,15 @@ export default function AdminClient({
   });
 
   // ---- Monthly View States ----
-  const [monthlyView, setMonthlyView] = useState<string>(""); // "YYYY-MM"
+  const [monthlyView, setMonthlyView] = useState<string>("");
   const [monthlyData, setMonthlyData] = useState<MonthlySummary | null>(null);
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const [loadingMonthly, setLoadingMonthly] = useState(false);
 
-  // โหลดเดือนที่มีข้อมูลตอน mount
   useEffect(() => {
     getAvailableMonths().then(setAvailableMonths);
   }, []);
 
-  // เมื่อเลือกเดือน → โหลดสรุป
   useEffect(() => {
     if (!monthlyView) return;
     const [year, month] = monthlyView.split("-").map(Number);
@@ -265,7 +263,6 @@ export default function AdminClient({
     { value: "debt_add", label: "ให้ยืมเพิ่ม", icon: Plus, active: "text-amber-400 border-amber-400/40 bg-amber-400/5" },
   ];
 
-  // ---- แก้ไขการคำนวณให้ใช้ค่าบวกสำหรับรายจ่าย ----
   const incomeTransactions = initialTransactions.filter((t) => t.type === "income");
   const expenseTransactions = initialTransactions.filter((t) => t.type === "expense");
   const debtTransactions = initialTransactions.filter((t) => t.type === "debt_payment" || t.type === "debt_add");
@@ -289,6 +286,8 @@ export default function AdminClient({
 
   const pageTitle = getPageTitle();
 
+  // ─── TransactionTable ───
+  // แก้: เพิ่ม active:bg-zinc-800/40 บน tr, ปุ่มลบ opacity-100 บน mobile
   const TransactionTable = ({ transactions }: { transactions: Transaction[] }) => (
     <div className="bg-[#121418] border border-zinc-900 rounded-2xl overflow-x-auto">
       {transactions.length === 0 ? (
@@ -311,7 +310,11 @@ export default function AdminClient({
               const displayAmount = isInflow ? t.amount : Math.abs(t.amount);
               const prefix = isInflow ? "+" : "-";
               return (
-                <tr key={t.id} className="hover:bg-zinc-900/20 transition-colors group">
+                // แก้: touch highlight บน mobile ผ่าน active:bg-zinc-800/40, transition เร็วขึ้น
+                <tr
+                  key={t.id}
+                  className="hover:bg-zinc-900/20 active:bg-zinc-800/40 transition-colors duration-100 group"
+                >
                   <td className="py-2.5 px-3 sm:py-3.5 sm:px-5">
                     <span className={`text-[10px] px-2 py-0.5 rounded border whitespace-nowrap ${badge.color}`}>{badge.label}</span>
                   </td>
@@ -323,6 +326,7 @@ export default function AdminClient({
                     {prefix}฿{displayAmount.toLocaleString()}
                   </td>
                   <td className="py-2.5 px-3 sm:py-3.5 sm:px-5 text-center">
+                    {/* แก้: บนมือถือ opacity-100 ตลอด ไม่ซ่อน / เพิ่ม active:scale-90 */}
                     <button
                       onClick={async () => {
                         if (!confirm("ยืนยันการลบรายการนี้?")) return;
@@ -330,7 +334,8 @@ export default function AdminClient({
                         if (!res?.success) alert((res as any)?.error);
                         else router.refresh();
                       }}
-                      className="text-zinc-700 hover:text-rose-400 p-1.5 rounded transition-colors opacity-0 group-hover:opacity-100"
+                      className="text-zinc-700 hover:text-rose-400 active:text-rose-300 active:scale-90 p-1.5 rounded transition-all duration-100 touch-manipulation
+                                 opacity-100 md:opacity-0 md:group-hover:opacity-100"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -344,6 +349,7 @@ export default function AdminClient({
     </div>
   );
 
+  // ─── SidebarContent ───
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="px-6 py-7 border-b border-zinc-900">
@@ -351,26 +357,37 @@ export default function AdminClient({
         <h2 className="text-sm font-light text-zinc-200 tracking-wider mt-1">AUNOB STORE</h2>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        {/* แก้: เพิ่ม active:bg-zinc-700/60 active:scale-[0.98] touch-manipulation select-none */}
         <button
           onClick={() => handleNavClick("overview")}
-          className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs tracking-wide transition-all ${
-            activeView === "overview" ? "bg-zinc-800/80 text-zinc-100 border border-zinc-700/40" : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/60"
-          }`}
+          className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs tracking-wide transition-all duration-100
+                      touch-manipulation select-none
+                      active:scale-[0.98] active:opacity-80
+                      ${activeView === "overview"
+                        ? "bg-zinc-800/80 text-zinc-100 border border-zinc-700/40 active:bg-zinc-700/80"
+                        : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/60 active:bg-zinc-800/50 active:text-zinc-200"
+                      }`}
         >
           <LayoutDashboard size={14} className={activeView === "overview" ? "text-zinc-300" : "text-zinc-600"} />
           <span className="font-light">ภาพรวม</span>
         </button>
+
         {sidebarSections.map((section) => {
           const SectionIcon = section.icon;
           const isOpen = openSections[section.id];
           const isChildActive = section.children.some((c) => c.id === activeView);
           return (
             <div key={section.id}>
+              {/* แก้: section header touch feedback */}
               <button
                 onClick={() => toggleSection(section.id)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs tracking-wide transition-all group ${
-                  isChildActive && !isOpen ? "text-zinc-200 bg-zinc-900/60" : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/40"
-                }`}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs tracking-wide transition-all duration-100 group
+                            touch-manipulation select-none
+                            active:scale-[0.98] active:opacity-75
+                            ${isChildActive && !isOpen
+                              ? "text-zinc-200 bg-zinc-900/60 active:bg-zinc-800/60"
+                              : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/40 active:bg-zinc-900/70 active:text-zinc-300"
+                            }`}
               >
                 <div className="flex items-center gap-3">
                   <SectionIcon size={14} className={isChildActive ? "text-zinc-400" : "text-zinc-600 group-hover:text-zinc-500"} />
@@ -378,18 +395,24 @@ export default function AdminClient({
                 </div>
                 {isOpen ? <ChevronDown size={12} className="text-zinc-600" /> : <ChevronRight size={12} className="text-zinc-600" />}
               </button>
+
               {isOpen && (
                 <div className="ml-4 mt-0.5 pl-3 border-l border-zinc-800/60 space-y-0.5">
                   {section.children.map((child) => {
                     const ChildIcon = child.icon;
                     const isActive = activeView === child.id;
                     return (
+                      // แก้: child nav item touch feedback
                       <button
                         key={child.id}
                         onClick={() => handleNavClick(child.id)}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] tracking-wide transition-all ${
-                          isActive ? "bg-zinc-800/70 text-zinc-100 border border-zinc-700/30" : "text-zinc-600 hover:text-zinc-300 hover:bg-zinc-900/50"
-                        }`}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] tracking-wide transition-all duration-100
+                                    touch-manipulation select-none
+                                    active:scale-[0.97] active:opacity-80
+                                    ${isActive
+                                      ? "bg-zinc-800/70 text-zinc-100 border border-zinc-700/30 active:bg-zinc-700/70"
+                                      : "text-zinc-600 hover:text-zinc-300 hover:bg-zinc-900/50 active:bg-zinc-800/40 active:text-zinc-200"
+                                    }`}
                       >
                         <ChildIcon size={12} className={isActive ? "text-zinc-300" : "text-zinc-700"} />
                         <span className="font-light">{child.label}</span>
@@ -402,16 +425,24 @@ export default function AdminClient({
           );
         })}
       </nav>
+
       <div className="px-3 py-4 border-t border-zinc-900 space-y-2">
         <Link href="/">
-          <button className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs text-zinc-600 hover:text-zinc-300 hover:bg-zinc-900/40 transition-all">
+          {/* แก้: touch feedback บน Link button */}
+          <button className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs text-zinc-600
+                             hover:text-zinc-300 hover:bg-zinc-900/40
+                             active:text-zinc-200 active:bg-zinc-800/50 active:scale-[0.98]
+                             transition-all duration-100 touch-manipulation select-none">
             <ArrowLeftFromLine size={14} />
             <span className="font-light">กลับหน้าหลัก</span>
           </button>
         </Link>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-all"
+          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs text-rose-400
+                     hover:text-rose-300 hover:bg-rose-500/10
+                     active:text-rose-200 active:bg-rose-500/20 active:scale-[0.98]
+                     transition-all duration-100 touch-manipulation select-none"
         >
           <LogOut size={14} />
           <span className="font-light">ออกจากระบบ</span>
@@ -422,52 +453,99 @@ export default function AdminClient({
 
   return (
     <div className="flex min-h-screen bg-[#0B0C0E] text-[#E4E6EB] font-sans antialiased">
-      {/* DESKTOP SIDEBAR */}
+
+      {/* DESKTOP SIDEBAR — ไม่เปลี่ยน */}
       <aside className="hidden md:flex w-56 lg:w-64 border-r border-zinc-900 bg-[#0F1013] flex-col fixed h-full z-10 shrink-0">
         <SidebarContent />
       </aside>
-      {/* MOBILE SIDEBAR OVERLAY */}
+
+      {/* MOBILE SIDEBAR OVERLAY
+          แก้: เพิ่ม transform transition slide-in จากซ้าย */}
       {isSidebarOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />
-          <aside className="relative w-64 bg-[#0F1013] border-r border-zinc-900 flex flex-col z-10 h-full">
-            <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 text-zinc-600 hover:text-zinc-300">
+          {/* backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+          {/* drawer — slide in from left */}
+          <aside className="relative w-64 bg-[#0F1013] border-r border-zinc-900 flex flex-col z-10 h-full
+                            animate-in slide-in-from-left duration-200">
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="absolute top-4 right-4 text-zinc-600
+                         hover:text-zinc-300 active:text-zinc-100 active:scale-90
+                         transition-all duration-100 touch-manipulation p-1"
+            >
               <X size={16} />
             </button>
             <SidebarContent />
           </aside>
         </div>
       )}
+
       {/* MAIN CONTENT */}
       <main className="flex-1 md:pl-56 lg:pl-64 min-h-screen pb-10">
+
         {/* TOP BAR */}
         <div className="sticky top-0 z-30 bg-[#0B0C0E]/90 backdrop-blur-sm border-b border-zinc-900">
           <div className="max-w-5xl mx-auto px-4 sm:px-5 md:px-8 py-3 sm:py-4 flex items-center justify-between gap-2 sm:gap-4">
-            <button className="md:hidden flex flex-col gap-1 p-1.5 shrink-0" onClick={() => setIsSidebarOpen(true)}>
+
+            {/* hamburger — แก้: ใหญ่ขึ้นนิดหน่อยสำหรับ touch, เพิ่ม active state */}
+            <button
+              className="md:hidden flex flex-col gap-1 p-2 -ml-1 rounded-lg
+                         active:bg-zinc-800/60 active:scale-90
+                         transition-all duration-100 touch-manipulation"
+              onClick={() => setIsSidebarOpen(true)}
+            >
               <span className="w-4 h-px bg-zinc-400" />
               <span className="w-4 h-px bg-zinc-400" />
               <span className="w-3 h-px bg-zinc-400" />
             </button>
+
             <div className="flex-1 min-w-0">
               <p className="text-[9px] tracking-[0.3em] text-zinc-600 uppercase font-medium hidden sm:block">{pageTitle.sub}</p>
               <h1 className="text-sm md:text-base font-light text-zinc-100 tracking-wide truncate">{pageTitle.main}</h1>
             </div>
+
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              <button onClick={() => setIsOpenTxModal(true)} className="flex items-center gap-1 sm:gap-1.5 bg-zinc-100 text-zinc-950 hover:bg-white px-2 sm:px-3 py-1.5 rounded-lg text-xs font-normal transition-all">
+              {/* แก้: ปุ่ม top bar ทุกอัน เพิ่ม active state + touch-manipulation */}
+              <button
+                onClick={() => setIsOpenTxModal(true)}
+                className="flex items-center gap-1 sm:gap-1.5 bg-zinc-100 text-zinc-950
+                           hover:bg-white active:bg-zinc-200 active:scale-95
+                           px-2 sm:px-3 py-1.5 rounded-lg text-xs font-normal
+                           transition-all duration-100 touch-manipulation select-none"
+              >
                 <Plus size={13} />
                 <span className="hidden sm:inline">บันทึกธุรกรรม</span>
               </button>
-              <button onClick={() => setIsOpenDebtorModal(true)} className="flex items-center gap-1 sm:gap-1.5 border border-zinc-800 bg-zinc-900/50 text-zinc-200 hover:bg-zinc-800 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-normal transition-all">
+
+              <button
+                onClick={() => setIsOpenDebtorModal(true)}
+                className="flex items-center gap-1 sm:gap-1.5 border border-zinc-800 bg-zinc-900/50 text-zinc-200
+                           hover:bg-zinc-800 active:bg-zinc-700 active:scale-95
+                           px-2 sm:px-3 py-1.5 rounded-lg text-xs font-normal
+                           transition-all duration-100 touch-manipulation select-none"
+              >
                 <Users size={13} />
                 <span className="hidden sm:inline">เพิ่มลูกหนี้</span>
               </button>
-              <Link href="/" className="hidden sm:flex items-center gap-1.5 border border-zinc-800 bg-zinc-900/50 text-zinc-200 hover:bg-zinc-800 px-3 py-1.5 rounded-lg text-xs font-normal transition-all">
+
+              <Link href="/" className="hidden sm:flex items-center gap-1.5 border border-zinc-800 bg-zinc-900/50 text-zinc-200
+                                         hover:bg-zinc-800 active:bg-zinc-700 active:scale-95
+                                         px-3 py-1.5 rounded-lg text-xs font-normal
+                                         transition-all duration-100 touch-manipulation select-none">
                 <ArrowLeftFromLine size={13} />
                 <span className="hidden sm:inline">กลับหน้าหลัก</span>
               </Link>
+
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1 sm:gap-1.5 border border-zinc-800 bg-zinc-900/50 text-zinc-200 hover:bg-zinc-800 hover:text-red-400 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-normal transition-all"
+                className="flex items-center gap-1 sm:gap-1.5 border border-zinc-800 bg-zinc-900/50 text-zinc-200
+                           hover:bg-zinc-800 hover:text-red-400 active:bg-zinc-700 active:text-red-300 active:scale-95
+                           px-2 sm:px-3 py-1.5 rounded-lg text-xs font-normal
+                           transition-all duration-100 touch-manipulation select-none"
                 title="ออกจากระบบ"
               >
                 <LogOut size={13} />
@@ -479,6 +557,7 @@ export default function AdminClient({
 
         {/* PAGE CONTENT */}
         <div className="max-w-5xl mx-auto px-4 sm:px-5 md:px-8 py-6 sm:py-8 space-y-6 animate-in fade-in duration-300">
+
           {/* ─── OVERVIEW ─── */}
           {activeView === "overview" && (
             <div className="space-y-6">
@@ -498,11 +577,19 @@ export default function AdminClient({
                   </div>
                 ))}
               </div>
+
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="bg-[#121418] border border-zinc-900 rounded-2xl p-4 sm:p-5">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-[10px] tracking-widest text-zinc-400 font-light">รายรับ-จ่ายล่าสุด</h3>
-                    <button onClick={() => setActiveView("cashflow_all")} className="text-[10px] text-zinc-600 hover:text-zinc-300 transition-colors">ดูทั้งหมด →</button>
+                    {/* แก้: "ดูทั้งหมด" เพิ่ม touch area + active state */}
+                    <button
+                      onClick={() => setActiveView("cashflow_all")}
+                      className="text-[10px] text-zinc-600 hover:text-zinc-300 active:text-zinc-100
+                                 transition-colors duration-100 touch-manipulation px-1 py-0.5 -mr-1"
+                    >
+                      ดูทั้งหมด →
+                    </button>
                   </div>
                   <div className="divide-y divide-zinc-900/40 space-y-0">
                     {initialTransactions.filter((t) => t.type === "income" || t.type === "expense").slice(0, 5).map((t) => {
@@ -525,10 +612,17 @@ export default function AdminClient({
                     )}
                   </div>
                 </div>
+
                 <div className="bg-[#121418] border border-zinc-900 rounded-2xl p-4 sm:p-5">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-[10px] tracking-widest text-zinc-400 font-light">ความเคลื่อนไหวหนี้ล่าสุด</h3>
-                    <button onClick={() => setActiveView("debtors_activity")} className="text-[10px] text-zinc-600 hover:text-zinc-300 transition-colors">ดูทั้งหมด →</button>
+                    <button
+                      onClick={() => setActiveView("debtors_activity")}
+                      className="text-[10px] text-zinc-600 hover:text-zinc-300 active:text-zinc-100
+                                 transition-colors duration-100 touch-manipulation px-1 py-0.5 -mr-1"
+                    >
+                      ดูทั้งหมด →
+                    </button>
                   </div>
                   <div className="divide-y divide-zinc-900/40">
                     {debtTransactions.slice(0, 5).map((t) => {
@@ -551,14 +645,26 @@ export default function AdminClient({
                   </div>
                 </div>
               </div>
+
               <div className="bg-[#121418] border border-zinc-900 rounded-2xl p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-[10px] tracking-widest text-zinc-400 font-light">สรุปยอดลูกหนี้</h3>
-                  <button onClick={() => setActiveView("debtors_list")} className="text-[10px] text-zinc-600 hover:text-zinc-300 transition-colors">จัดการ →</button>
+                  <button
+                    onClick={() => setActiveView("debtors_list")}
+                    className="text-[10px] text-zinc-600 hover:text-zinc-300 active:text-zinc-100
+                               transition-colors duration-100 touch-manipulation px-1 py-0.5 -mr-1"
+                  >
+                    จัดการ →
+                  </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {initialDebtors.slice(0, 6).map((d) => (
-                    <div key={d.id} className="flex items-center gap-2 bg-zinc-900/60 border border-zinc-800/40 rounded-xl px-3 py-2">
+                    // แก้: debtor card เพิ่ม active state สำหรับ touch
+                    <div
+                      key={d.id}
+                      className="flex items-center gap-2 bg-zinc-900/60 border border-zinc-800/40 rounded-xl px-3 py-2
+                                 active:bg-zinc-800/80 active:scale-95 transition-all duration-100"
+                    >
                       <div className="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center">
                         <span className="text-[9px] text-zinc-400">{d.name.charAt(0)}</span>
                       </div>
@@ -651,7 +757,9 @@ export default function AdminClient({
                   <select
                     value={monthlyView}
                     onChange={(e) => setMonthlyView(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-10 text-sm text-white appearance-none focus:outline-none focus:border-amber-400/40 focus:ring-2 focus:ring-amber-400/10"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-10 text-sm text-white appearance-none
+                               focus:outline-none focus:border-amber-400/40 focus:ring-2 focus:ring-amber-400/10
+                               active:bg-white/10 touch-manipulation"
                   >
                     <option value="" disabled>เลือกเดือน</option>
                     {availableMonths.map((m) => (
@@ -709,7 +817,8 @@ export default function AdminClient({
                               const displayAmount = isInflow ? tx.amount : Math.abs(tx.amount);
                               const prefix = isInflow ? "+" : "-";
                               return (
-                                <tr key={tx.id} className="hover:bg-white/5">
+                                // แก้: monthly table row touch feedback
+                                <tr key={tx.id} className="hover:bg-white/5 active:bg-white/10 transition-colors duration-100">
                                   <td className="py-2.5 px-3 sm:py-3 sm:px-5">
                                     <span className={`text-[10px] px-2 py-0.5 rounded-full ${
                                       tx.type === "income" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
@@ -765,7 +874,8 @@ export default function AdminClient({
                     </thead>
                     <tbody className="divide-y divide-zinc-900/60">
                       {initialDebtors.map((d) => (
-                        <tr key={d.id} className="hover:bg-zinc-900/20 transition-colors">
+                        // แก้: debtor row touch feedback
+                        <tr key={d.id} className="hover:bg-zinc-900/20 active:bg-zinc-800/30 transition-colors duration-100">
                           <td className="py-3 px-3 sm:py-4 sm:px-5">
                             <div className="flex items-center gap-2.5">
                               <div className="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700/50 flex items-center justify-center shrink-0">
@@ -780,16 +890,38 @@ export default function AdminClient({
                           </td>
                           <td className="py-3 px-3 sm:py-4 sm:px-5">
                             <div className="flex items-center justify-center gap-1 sm:gap-2">
-                              <button onClick={() => openActionForDebtor(d.id, "debt_payment")} className="flex items-center gap-1 sm:gap-1.5 text-[10px] font-light text-teal-400 border border-teal-500/20 bg-teal-500/10 hover:bg-teal-500/20 px-2 sm:px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap">
+                              {/* แก้: ปุ่มชำระ/เพิ่ม เพิ่ม touch feedback ชัดเจน */}
+                              <button
+                                onClick={() => openActionForDebtor(d.id, "debt_payment")}
+                                className="flex items-center gap-1 sm:gap-1.5 text-[10px] font-light text-teal-400
+                                           border border-teal-500/20 bg-teal-500/10
+                                           hover:bg-teal-500/20 active:bg-teal-500/30 active:scale-95
+                                           px-2 sm:px-2.5 py-1.5 rounded-lg
+                                           transition-all duration-100 touch-manipulation whitespace-nowrap"
+                              >
                                 <DollarSign size={11} /> ชำระ
                               </button>
-                              <button onClick={() => openActionForDebtor(d.id, "debt_add")} className="flex items-center gap-1 sm:gap-1.5 text-[10px] font-light text-rose-400 border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 px-2 sm:px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap">
+                              <button
+                                onClick={() => openActionForDebtor(d.id, "debt_add")}
+                                className="flex items-center gap-1 sm:gap-1.5 text-[10px] font-light text-rose-400
+                                           border border-rose-500/20 bg-rose-500/10
+                                           hover:bg-rose-500/20 active:bg-rose-500/30 active:scale-95
+                                           px-2 sm:px-2.5 py-1.5 rounded-lg
+                                           transition-all duration-100 touch-manipulation whitespace-nowrap"
+                              >
                                 <Plus size={11} /> เพิ่ม
                               </button>
                             </div>
                           </td>
                           <td className="py-3 px-3 sm:py-4 sm:px-5 text-center">
-                            <button onClick={() => handleDeleteDebtor(d.id, d.name)} className="p-1.5 rounded-lg text-zinc-600 hover:text-rose-400 hover:bg-rose-500/10 transition-colors" title="ลบลูกหนี้">
+                            <button
+                              onClick={() => handleDeleteDebtor(d.id, d.name)}
+                              className="p-1.5 rounded-lg text-zinc-600
+                                         hover:text-rose-400 hover:bg-rose-500/10
+                                         active:text-rose-300 active:bg-rose-500/20 active:scale-90
+                                         transition-all duration-100 touch-manipulation"
+                              title="ลบลูกหนี้"
+                            >
                               <Trash2 size={13} />
                             </button>
                           </td>
@@ -815,7 +947,8 @@ export default function AdminClient({
       {/* ─── MODAL: บันทึกธุรกรรม ─── */}
       {isOpenTxModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0F1115] border border-zinc-900 rounded-[20px] w-full max-w-sm p-5 sm:p-6 relative shadow-2xl">
+          <div className="bg-[#0F1115] border border-zinc-900 rounded-[20px] w-full max-w-sm p-5 sm:p-6 relative shadow-2xl
+                          animate-in fade-in slide-in-from-bottom-4 duration-200">
             <div className="flex justify-between items-start mb-5 sm:mb-6">
               <div>
                 <p className="text-[10px] tracking-[0.2em] text-zinc-600 uppercase mb-1">ธุรกรรม</p>
@@ -823,7 +956,13 @@ export default function AdminClient({
                   {txForm.type === "debt_payment" ? "บันทึกการชำระหนี้" : txForm.type === "debt_add" ? "บันทึกการยืมเพิ่ม" : "บันทึกรายการใหม่"}
                 </h2>
               </div>
-              <button onClick={() => setIsOpenTxModal(false)} className="w-7 h-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-zinc-300">
+              {/* แก้: ปุ่มปิด modal touch feedback */}
+              <button
+                onClick={() => setIsOpenTxModal(false)}
+                className="w-7 h-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center
+                           text-zinc-500 hover:text-zinc-300 active:text-zinc-100 active:bg-zinc-800 active:scale-90
+                           transition-all duration-100 touch-manipulation"
+              >
                 <X size={14} />
               </button>
             </div>
@@ -832,8 +971,19 @@ export default function AdminClient({
                 <label className="block text-[10px] tracking-[0.15em] text-zinc-600 uppercase mb-2">ประเภท</label>
                 <div className="grid grid-cols-2 gap-1.5">
                   {txTypeOptions.map(({ value, label, icon: Icon, active }) => (
-                    <button key={value} type="button" onClick={() => setTxForm({ ...txForm, type: value, debtorId: "" })}
-                      className={`flex items-center gap-2 px-2.5 sm:px-3 py-2.5 rounded-xl border text-[11px] transition-all ${txForm.type === value ? active : "border-zinc-800 bg-zinc-900/40 text-zinc-500"}`}>
+                    // แก้: type selector button touch feedback
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setTxForm({ ...txForm, type: value, debtorId: "" })}
+                      className={`flex items-center gap-2 px-2.5 sm:px-3 py-2.5 rounded-xl border text-[11px]
+                                  transition-all duration-100 touch-manipulation select-none
+                                  active:scale-95
+                                  ${txForm.type === value
+                                    ? `${active} active:opacity-80`
+                                    : "border-zinc-800 bg-zinc-900/40 text-zinc-500 active:bg-zinc-800/60 active:text-zinc-300"
+                                  }`}
+                    >
                       <Icon size={12} /> {label}
                     </button>
                   ))}
@@ -842,8 +992,13 @@ export default function AdminClient({
               {(txForm.type === "debt_payment" || txForm.type === "debt_add") && (
                 <div>
                   <label className="block text-[10px] tracking-[0.15em] text-zinc-600 uppercase mb-2">เลือกลูกหนี้</label>
-                  <select required value={txForm.debtorId} onChange={(e) => setTxForm({ ...txForm, debtorId: e.target.value })}
-                    className="w-full bg-zinc-900/40 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-300 focus:outline-none">
+                  <select
+                    required
+                    value={txForm.debtorId}
+                    onChange={(e) => setTxForm({ ...txForm, debtorId: e.target.value })}
+                    className="w-full bg-zinc-900/40 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-300
+                               focus:outline-none touch-manipulation"
+                  >
                     <option value="">— กรุณาเลือก —</option>
                     {initialDebtors.map((d) => (
                       <option key={d.id} value={d.id}>{d.name} · ค้าง ฿{d.totalDebt.toLocaleString()}</option>
@@ -855,19 +1010,38 @@ export default function AdminClient({
                 <label className="block text-[10px] tracking-[0.15em] text-zinc-600 uppercase mb-2">จำนวนเงิน</label>
                 <div className="flex items-center bg-zinc-900/40 border border-zinc-800 rounded-xl px-4 h-12">
                   <span className="text-zinc-600 text-base mr-2">฿</span>
-                  <input type="number" step="0.01" required placeholder="0.00" value={txForm.amount}
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    value={txForm.amount}
                     onChange={(e) => setTxForm({ ...txForm, amount: e.target.value })}
-                    className="flex-1 bg-transparent text-lg sm:text-xl font-light text-zinc-200 focus:outline-none" />
+                    inputMode="decimal"
+                    className="flex-1 bg-transparent text-lg sm:text-xl font-light text-zinc-200 focus:outline-none"
+                  />
                 </div>
               </div>
               <div>
                 <label className="block text-[10px] tracking-[0.15em] text-zinc-600 uppercase mb-2">รายละเอียด</label>
-                <input type="text" placeholder="ระบุคำอธิบายสั้นๆ..." value={txForm.description}
+                <input
+                  type="text"
+                  placeholder="ระบุคำอธิบายสั้นๆ..."
+                  value={txForm.description}
                   onChange={(e) => setTxForm({ ...txForm, description: e.target.value })}
-                  className="w-full bg-zinc-900/40 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-300 focus:outline-none" />
+                  className="w-full bg-zinc-900/40 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-300 focus:outline-none"
+                />
               </div>
               <div className="border-t border-zinc-900 pt-4">
-                <button type="submit" disabled={isPending} className="w-full bg-zinc-100 hover:bg-white text-zinc-950 py-2.5 rounded-xl text-xs transition-all disabled:opacity-40">
+                {/* แก้: ปุ่ม submit touch feedback */}
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="w-full bg-zinc-100 hover:bg-white active:bg-zinc-200 active:scale-[0.98]
+                             text-zinc-950 py-2.5 rounded-xl text-xs
+                             transition-all duration-100 touch-manipulation
+                             disabled:opacity-40"
+                >
                   {isPending ? "กำลังบันทึก..." : "ยืนยันการบันทึก →"}
                 </button>
               </div>
@@ -879,13 +1053,19 @@ export default function AdminClient({
       {/* ─── MODAL: เพิ่มลูกหนี้ ─── */}
       {isOpenDebtorModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0F1115] border border-zinc-900 rounded-[20px] w-full max-w-sm p-5 sm:p-6 relative shadow-2xl">
+          <div className="bg-[#0F1115] border border-zinc-900 rounded-[20px] w-full max-w-sm p-5 sm:p-6 relative shadow-2xl
+                          animate-in fade-in slide-in-from-bottom-4 duration-200">
             <div className="flex justify-between items-start mb-5 sm:mb-6">
               <div>
                 <p className="text-[10px] tracking-[0.2em] text-zinc-600 uppercase mb-1">ลูกหนี้</p>
                 <h2 className="text-[14px] sm:text-[15px] font-light text-zinc-200 tracking-wide">เพิ่มรายชื่อใหม่</h2>
               </div>
-              <button onClick={() => setIsOpenDebtorModal(false)} className="w-7 h-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-zinc-300">
+              <button
+                onClick={() => setIsOpenDebtorModal(false)}
+                className="w-7 h-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center
+                           text-zinc-500 hover:text-zinc-300 active:text-zinc-100 active:bg-zinc-800 active:scale-90
+                           transition-all duration-100 touch-manipulation"
+              >
                 <X size={14} />
               </button>
             </div>
@@ -894,28 +1074,50 @@ export default function AdminClient({
                 <label className="block text-[10px] tracking-[0.15em] text-zinc-600 uppercase mb-2">ชื่อ-นามสกุล</label>
                 <div className="flex items-center bg-zinc-900/40 border border-zinc-800 rounded-xl px-3 h-10 gap-2">
                   <Users size={13} className="text-zinc-600 shrink-0" />
-                  <input type="text" required placeholder="กรอกชื่อลูกหนี้..." value={debtorForm.name}
+                  <input
+                    type="text"
+                    required
+                    placeholder="กรอกชื่อลูกหนี้..."
+                    value={debtorForm.name}
                     onChange={(e) => setDebtorForm({ ...debtorForm, name: e.target.value })}
-                    className="flex-1 bg-transparent text-xs text-zinc-200 focus:outline-none" />
+                    className="flex-1 bg-transparent text-xs text-zinc-200 focus:outline-none"
+                  />
                 </div>
               </div>
               <div>
                 <label className="block text-[10px] tracking-[0.15em] text-zinc-600 uppercase mb-2">ยอดหนี้ตั้งต้น</label>
                 <div className="flex items-center bg-zinc-900/40 border border-zinc-800 rounded-xl px-4 h-12">
                   <span className="text-zinc-600 text-base mr-2">฿</span>
-                  <input type="number" step="0.01" placeholder="0.00" value={debtorForm.initialDebt}
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={debtorForm.initialDebt}
                     onChange={(e) => setDebtorForm({ ...debtorForm, initialDebt: e.target.value })}
-                    className="flex-1 bg-transparent text-lg sm:text-xl font-light text-zinc-200 focus:outline-none" />
+                    inputMode="decimal"
+                    className="flex-1 bg-transparent text-lg sm:text-xl font-light text-zinc-200 focus:outline-none"
+                  />
                 </div>
               </div>
               <div>
                 <label className="block text-[10px] tracking-[0.15em] text-zinc-600 uppercase mb-2">หมายเหตุ / ช่องทางติดต่อ</label>
-                <textarea rows={2} placeholder="เบอร์โทร, ลิงก์โซเชียล..." value={debtorForm.note}
+                <textarea
+                  rows={2}
+                  placeholder="เบอร์โทร, ลิงก์โซเชียล..."
+                  value={debtorForm.note}
                   onChange={(e) => setDebtorForm({ ...debtorForm, note: e.target.value })}
-                  className="w-full bg-zinc-900/40 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-300 resize-none focus:outline-none" />
+                  className="w-full bg-zinc-900/40 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-zinc-300 resize-none focus:outline-none"
+                />
               </div>
               <div className="border-t border-zinc-900 pt-4">
-                <button type="submit" disabled={isPending} className="w-full bg-zinc-100 hover:bg-white text-zinc-950 py-2.5 rounded-xl text-xs transition-all disabled:opacity-40">
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="w-full bg-zinc-100 hover:bg-white active:bg-zinc-200 active:scale-[0.98]
+                             text-zinc-950 py-2.5 rounded-xl text-xs
+                             transition-all duration-100 touch-manipulation
+                             disabled:opacity-40"
+                >
                   {isPending ? "กำลังบันทึก..." : "เพิ่มรายชื่อลงระบบ →"}
                 </button>
               </div>
